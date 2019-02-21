@@ -7,7 +7,7 @@ Created on Tue May 22 16:52:25 2018
 
 The EnKF.
   Ref: Evensen, Geir. (2009):
-  "Data assimilation: the ensemble Kalman filter}."
+  "The ensemble Kalman filter for combined state and parameter estimation."
   
 """
 import numpy as np
@@ -37,7 +37,7 @@ def fore_step(E, hyp, rcv):
         slowness = 1./Ef[j,:]
         hE[j,:] = g.raytrace(slowness, hyp, rcv_data)-hyp[:,1]
     
-    return Ef,hE,N,slowness,rcv_data
+    return Ef,hE,N,slowness,rcv_data,hyp
 
 
 #%%
@@ -79,6 +79,7 @@ def tt_error(Ea,slowness,hyp,rcv_data,hE,N):
     plt.xlabel('Ray num',fontsize=18)
     plt.tick_params(labelsize=15)
     plt.legend()
+    plt.show()
     return hEa
 
 #%%
@@ -105,18 +106,18 @@ if __name__ == '__main__':
     #%%
     """ imput files """
     ##  Receivers
-    rcv=np.loadtxt(open("rcvRND.txt"), skiprows=1)
+    rcv=np.loadtxt(open("example/rcvRND.txt"), skiprows=1)
     ## Observed times  
-    tt=np.loadtxt(open("test_ranREC/tt_synth" + step + ".txt"))
+    tt=np.loadtxt(open("example/tt_synth" + step + ".txt"))
     ## Hypos
-    hyp=np.loadtxt(open("test_ranREC/h_true" + step + ".txt"))
+    hyp=np.loadtxt(open("example/h_true" + step + ".txt"))
     ## Previews (or initial) V models, by SGS :
     #E=np.loadtxt(open("E100.txt")).T #ensemble de V
-    E=np.loadtxt(open("test_ranREC/Ea"+step_prev+".txt"))
+    E=np.loadtxt(open("example/Ea"+step_prev+".txt"))
     # true V for RMSE
-    Vtrue=np.loadtxt(open("test_ranREC/Vtrue" + step + ".txt"))
+    Vtrue=np.loadtxt(open("example/Vtrue" + step + ".txt"))
     # microseisms coordinates
-    ms=np.loadtxt(open("test_ranREC/hinit" + step + ".txt")) 
+    ms=np.loadtxt(open("example/hinit" + step + ".txt")) 
     
     #%%
     ircv = np.arange(rcv.shape[0]).reshape(-1,1)   # vector of rcv indices
@@ -129,7 +130,7 @@ if __name__ == '__main__':
    
     #%%
     """Perform EnKF"""
-    Ef,hE, N , slowness, rcv_data= fore_step(E, hyp, rcv)               #forecast step
+    Ef,hE, N , slowness, rcv_data,hyp= fore_step(E, hyp, rcv)               #forecast step
     Ea= analysis_step(Ef, hE, R, N)                 #Analysis step
     hEa= tt_error(Ea,slowness, hyp,rcv_data,hE,N)   #Control travel times
     #%% 
@@ -138,22 +139,21 @@ if __name__ == '__main__':
     
     #slices of E before the forecast
     fig=plot_rnSGS(g,E)
-    fig.savefig("test_ranREC/rnEa" + step + ".png")
+    fig.savefig("example/rnEa" + step + ".png")
     #slices de Ef
     fig=plot_rnSGS(g,Ef)
-    fig.savefig("test_ranREC/rnEf" + step + ".png")
+    fig.savefig("example/rnEf" + step + ".png")
     #slices E
     fig=plot_rnSGS(g,Ea)
-    fig.savefig("test_ranREC/rnEa" + step + ".png")
+    fig.savefig("example/rnEa" + step + ".png")
     #analysed ensembles Ea
-    np.savetxt("test_ranREC/Ea" + step + ".txt", Ea)
+    np.savetxt("example/Ea" + step + ".txt", Ea)
     #plots Ef Ea and dif
-    g.toXdmf(np.mean(Ef,axis=0), "Vp_forcasted" + step ,  "test_ranREC/Vp_forcasted" + step )
-    g.toXdmf(np.mean(Ea,axis=0), "Vp_analysed" + step,  "test_ranREC/Vp_analysed" + step)
-    g.toXdmf(np.abs(np.mean(Ea,axis=0)-np.mean(Ef,axis=0)), "Vpa-Vpf" + step ,  "test_ranREC/Vpa-Vpf" + step)
+    g.toXdmf(np.mean(Ef,axis=0), "Vp_forcasted" + step ,  "example/Vp_forcasted" + step )
+    g.toXdmf(np.mean(Ea,axis=0), "Vp_analysed" + step,  "example/Vp_analysed" + step)
+    g.toXdmf(np.abs(np.mean(Ea,axis=0)-np.mean(Ef,axis=0)), "Vpa-Vpf" + step ,  "example/Vpa-Vpf" + step)
     
     # tt analysed hEa and forecasted hE
-    np.savetxt("test_ranREC/hE" + step + ".txt", hE)
-    np.savetxt("test_ranREC/hEa" + step + ".txt", hEa)
-    deltaTT.savefig("test_ranREC/deltaTT" + step )
+    np.savetxt("example/hE" + step + ".txt", hE)
+    np.savetxt("example/hEa" + step + ".txt", hEa)
         
