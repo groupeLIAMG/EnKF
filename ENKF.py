@@ -7,7 +7,7 @@ Created on Tue May 22 16:52:25 2018
 
 The EnKF.
   Ref: Evensen, Geir. (2009):
-  "The ensemble Kalman filter for combined state and parameter estimation."
+  "Data assimilation: the ensemble Kalman filter}."
   
 """
 import numpy as np
