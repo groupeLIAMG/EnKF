@@ -17,6 +17,7 @@ Note: You need to compile the python wrapper for the C++ raytracing code in http
 If you have VTK compiled with python on your system, it is possible to save velocity models and raypaths for posterior visualization (e.g. in paraview).
 
 References:
+
 @Book{evensen2009data,
   title     = {Data assimilation: the ensemble Kalman filter},
   publisher = {Springer Science \& Business Media},
