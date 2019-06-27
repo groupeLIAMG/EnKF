@@ -18,6 +18,13 @@ If you have VTK compiled with python on your system, it is possible to save velo
 
 References:
 
+@inproceedings{dip2019microseismic,
+  title={Microseismic Monitoring of Mines in Real Time with Ensemble Kalman Filter},
+  author={Dip, AC and Giroux, B and Gloaguen, E},
+  booktitle={81st EAGE Conference and Exhibition 2019},
+  year={2019}
+}
+
 @Book{evensen2009data,
   title     = {Data assimilation: the ensemble Kalman filter},
   publisher = {Springer Science \& Business Media},
