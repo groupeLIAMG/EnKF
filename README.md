@@ -4,7 +4,7 @@ A modernized, highly-parallelized Python implementation of the Ensemble Kalman F
 
 ## Repository Structure
 
-`config_enkf.py`: The master configuration file. Contains a dynamic switch `RUN_MODE = 'REAL'` or `RUN_MODE = 'SYNTHETIC'`  to automatically toggle between real mining datasets and benchmark testing.
+`config.py`: The master configuration file. Contains a dynamic switch `RUN_MODE = 'REAL'` or `RUN_MODE = 'SYNTHETIC'`  to automatically toggle between real mining datasets and benchmark testing.
 
 `enkf_core.py`: Contains the parallelized `fore_step` (Forecast) utilizing `joblib` and the `analysis_step` (Kalman Analysis).
 
