@@ -1,20 +1,35 @@
-# EnKF
+# Microseismic Ensemble Kalman Filter (EnKF) Pipeline
 
-The Ensemble Kalman filter applied to microseismic data for updating 3D velocity models
+A modernized, highly-parallelized Python implementation of the Ensemble Kalman Filter (EnKF) for real-time updating of 3D velocity models using microseismic travel times.
 
-! STILL UNDER TEST IN SYNTHETICS !
+## Repository Structure
 
-Requirements
+`config_enkf.py`: The master configuration file. Contains a dynamic switch `RUN_MODE = 'REAL'` or `RUN_MODE = 'SYNTHETIC'`  to automatically toggle between real mining datasets and benchmark testing.
+`enkf_core.py`: Contains the parallelized `fore_step` (Forecast) utilizing `joblib` and the `analysis_step` (Kalman Analysis).
+`functions.py`: Contains supporting mathematical and visualization functions (e.g., spherical perturbation algorithms).
+`main.py`: The primary execution script. Handles the time-loop (hour-by-hour processing), manages data assimilation flow, and saves `.vtk` and `.txt` outputs.
 
-Development is made with python version 3.6
+## Requirements and Installation
+This project requires specific custom libraries:
 
-You need to add this to you PYTHONPATH:
+**HypoPy**: 3D grid and
+**DAPPER**: Data assimilation library for the Kalman matrix operations.
+**ttcrpy**: A high-performance Python/C++ library utilized for computing theoretical travel times through the 3D velocity grid.
 
-https://github.com/groupeLIAMG/hypopy
+Development is made with python version 3.12.13
 
-Note: You need to compile the python wrapper for the C++ raytracing code in https://github.com/groupeLIAMG/ttcr and add it to your PYTHONPATH to be able to run hypo.py
+Install the standard libraries (`ttcrpy`):
+`pip install numpy pandas obspy tqdm joblib ttcrpy`
+
+`pip install git+https://github.com/groupeLIAMG/hypopy.git`
 
 If you have VTK compiled with python on your system, it is possible to save velocity models and raypaths for posterior visualization (e.g. in paraview).
+
+## Usage
+Open `config_enkf.py` and set your desired `RUN_MODE` and grid parameters. Ensure paths to your local data directories are correct.
+
+Run the main pipeline:
+`python main.py`
 
 References:
 
