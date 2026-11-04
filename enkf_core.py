@@ -32,7 +32,9 @@ def read_seg(foldername, h):
             for tr in stream:
                 header = tr.stats.segy.trace_header
                 if header.hour_of_day == h:
-                    timestamp.append(header.hour_of_day * 3600 + header.minute_of_hour * 60 + header.second_of_minute)
+                    # ms and us (bytes 105-108) are needed: main.py starts a new event when the timestamp changes
+                    timestamp.append(header.hour_of_day * 3600 + header.minute_of_hour * 60 + header.second_of_minute
+                                     + header.lag_time_A * 1e-3 + header.lag_time_B * 1e-6)
                     
                     # XYZ receivers
                     rcx.append(header.group_coordinate_x / 100.0)
