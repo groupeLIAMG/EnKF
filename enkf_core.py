@@ -11,6 +11,17 @@ sys.path.append(os.path.abspath("C:/Users/marti/hypopy"))
 import hypo
 from functions import esfera 
 
+def apply_segy_scalar(value, scalar):
+    """
+    Apply a SEG-Y coordinate or elevation scalar (trace header bytes 69-70 or 71-72):
+    positive = multiply, negative = divide by its absolute value, 0 = no scaling.
+    """
+    if scalar > 0:
+        return value * scalar
+    if scalar < 0:
+        return value / -scalar
+    return float(value)
+
 def read_seg(foldername, h):
     """
     Read events per hour.
@@ -35,14 +46,16 @@ def read_seg(foldername, h):
                     timestamp.append(header.hour_of_day * 3600 + header.minute_of_hour * 60 + header.second_of_minute)
                     
                     # XYZ receivers
-                    rcx.append(header.group_coordinate_x / 100.0)
-                    rcy.append(header.group_coordinate_y / 100.0)
-                    rcz.append(header.datum_elevation_at_receiver_group / 100.0)
+                    xy_scalar = header.scalar_to_be_applied_to_all_coordinates
+                    z_scalar = header.scalar_to_be_applied_to_all_elevations_and_depths
+                    rcx.append(apply_segy_scalar(header.group_coordinate_x, xy_scalar))
+                    rcy.append(apply_segy_scalar(header.group_coordinate_y, xy_scalar))
+                    rcz.append(apply_segy_scalar(header.datum_elevation_at_receiver_group, z_scalar))
                     
                     # XYZ source
-                    srx.append(header.source_coordinate_x / 100.0)
-                    sry.append(header.source_coordinate_y / 100.0)
-                    srz.append(header.source_depth_below_surface / 100.0)
+                    srx.append(apply_segy_scalar(header.source_coordinate_x, xy_scalar))
+                    sry.append(apply_segy_scalar(header.source_coordinate_y, xy_scalar))
+                    srz.append(apply_segy_scalar(header.source_depth_below_surface, z_scalar))
                     
                     # P and S pick
                     ttp.append(header.x_coordinate_of_ensemble_position_of_this_trace)   
