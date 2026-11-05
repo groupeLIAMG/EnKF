@@ -31,7 +31,7 @@ Install the standard libraries (`ttcrpy` and `hypopy`):
 If you have VTK compiled with python on your system, it is possible to save velocity models and raypaths for posterior visualization (e.g. in paraview).
 
 ## Usage
-Open `config_enkf.py` and set your desired `RUN_MODE` and grid parameters. Ensure paths to your local data directories are correct.
+Open `config.py` and set your desired `RUN_MODE` and grid parameters. Ensure paths to your local data directories are correct.
 
 Run the main pipeline:
 

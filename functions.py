@@ -7,6 +7,25 @@ Created on Tue Sep 11 10:12:44 2018
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from numba import njit
+import vtk
+from vtk.util.numpy_support import vtk_to_numpy
+
+def load_vel_vtr(vtr_path):
+    """
+    Reads the LaRonde .vtr file and extracts Vp as a flat 1D array of nodes.
+    Matches the exact output structure of the SGS script.
+    """
+    reader = vtk.vtkXMLRectilinearGridReader()
+    reader.SetFileName(vtr_path)
+    reader.Update()
+    grid = reader.GetOutput()
+    
+    # Extract Vp from PointData (nodes) and cast to float32
+    vp_vtk = grid.GetPointData().GetArray("Vp")
+    vp_flat = vtk_to_numpy(vp_vtk).astype(np.float32)
+    
+    return vp_flat
 
 def plot_rnSGS(g, E):
     """
@@ -62,6 +81,7 @@ def plot_rnSGS(g, E):
     plt.show()
     return fig
 
+'''
 def esfera(g, centro, V, pp=0.05, rr=120, vlim=None):
     """
     Applies a spherical velocity perturbation around the hypocenter.
@@ -95,6 +115,26 @@ def esfera(g, centro, V, pp=0.05, rr=120, vlim=None):
         V_updated = np.clip(V_updated, a_min=vlim, a_max=None)
         
     return V_updated
+'''
+@njit(cache=True)
+def esfera(xc, yc, zc, V, x0, y0, z0, pp, rr):
+    nx, ny, nz = len(xc), len(yc), len(zc)
+    V_updated = np.empty(nx * ny * nz, dtype=V.dtype)
+    idx = 0
+    rr_sq = rr ** 2 # Avoids expensive square roots during the loop
+    
+    for k in range(nz):
+        for j in range(ny):
+            for i in range(nx):
+                dist_sq = (xc[i] - x0)**2 + (yc[j] - y0)**2 + (zc[k] - z0)**2
+                if dist_sq <= rr_sq:
+                    V_updated[idx] = V[idx] * (1.0 + pp)
+                else:
+                    V_updated[idx] = V[idx]
+                idx += 1
+                
+    return V_updated
+
 
 def stats(E, Vtrue):
     """

@@ -5,11 +5,12 @@ import numpy as np
 import obspy
 from numpy.random import multivariate_normal
 from joblib import Parallel, delayed
-from tqdm import tqdm
 
 sys.path.append(os.path.abspath("C:/Users/marti/hypopy"))
 import hypo
-from functions import esfera 
+
+from functions import esfera
+import config
 
 def apply_segy_scalar(value, scalar):
     """
@@ -112,6 +113,15 @@ def inv_vcte(data_4inv, k, g):
     return hinit1, np.array(dat)[:nsta, 1], np.array(rcv)[:nsta], nsta    
 
 # --- Parallel Helper Functions ---
+def perturb(i, xc, yc, zc, centro, Ej, pp_min, pp_max, rr_min, rr_max):
+    pp_val = pp_min if pp_min == pp_max else np.random.uniform(pp_min, pp_max)
+    rr_val = np.random.uniform(rr_min, rr_max)
+    
+    # Hand off directly to the compiled Numba function
+    Ef_row = esfera(xc, yc, zc, Ej, centro[0], centro[1], centro[2], pp_val, rr_val)
+    return i, Ef_row
+
+'''
 def perturb(i, g, centro, Ej, pp_min, pp_max, rr_min, rr_max):
     """ 
     Helper function for parallel spherical perturbation
@@ -129,7 +139,7 @@ def perturb(i, g, centro, Ej, pp_min, pp_max, rr_min, rr_max):
     Ef_row = esfera(g, centro, Ej, pp=pp_val, rr=rr_val, vlim=None)
     
     return i, Ef_row
-
+'''
 def raytr(j, g, rcv, ms, slowness):
     try:
         # 1. Extract the Origin Time (t0) from column 1
@@ -167,12 +177,55 @@ def fore_step(E, ms, rcv, nsta, nev, g, pp_min, pp_max, rr_min, rr_max, ms_true=
     Ef = np.zeros(E.shape) 
     hE = np.zeros((N, len(rcv)))   
     
-    ms_kron = np.kron(raytrace_source, np.ones((nsta, 1)))
-    rcv_kron = np.kron(np.ones((nev, 1)), rcv)     
+    #ms_kron = np.kron(raytrace_source, np.ones((nsta, 1))).astype(config.PRECISION)
+    #rcv_kron = np.kron(np.ones((nev, 1)), rcv).astype(config.PRECISION)
     
+    # Extract only the X, Y, Z coordinates (Columns 2, 3, 4)
+    src_coords = np.ascontiguousarray(raytrace_source[:, 2:5]).astype(config.PRECISION)
+    rcv_coords = np.ascontiguousarray(rcv).astype(config.PRECISION)
+
+    # Extract the origin time (t0)
+    t0 = raytrace_source[0, 1]
+
+    # Extract bare 1D coordinate arrays from the nodes
+    xc = g.x
+    yc = g.y
+    zc = g.z
+
     # 1. Parallel Slowness Perturbation
-    # Generates a quick progress bar for the perturbation step
-    jobs_perturb = (delayed(perturb)(i, g, centro, E[i, :], pp_min, pp_max, rr_min, rr_max) for i in range(N))
+    
+    #jobs_perturb = (delayed(perturb)(i, g_loc, centro, E[i, :], pp_min, pp_max, rr_min, rr_max) for i in range(N))
+    jobs_perturb = (delayed(perturb)(i, xc, yc, zc, centro, E[i, :], pp_min, pp_max, rr_min, rr_max) for i in range(N))
+    Ef_results = Parallel(n_jobs=n_jobs)(jobs_perturb)
+
+    for i, Ef_row in Ef_results:
+        Ef[i, :] = Ef_row
+
+    # 2. Parallel Raytracing
+
+    print(f"    Running Raytracing (Method: {config.RAYTRACE_METHOD}, GPU: {config.USE_GPU})")
+
+    # ------ OpenCL warm-up -------
+    if config.RAYTRACE_METHOD == 'FSM':
+        g.set_slowness((1. / Ef[0, :]).astype(config.PRECISION))
+        _ = g.raytrace(src_coords, rcv_coords)
+
+    # 
+    for j in range(N):
+        slowness = (1. / Ef[j, :]).astype(config.PRECISION)
+
+        if config.RAYTRACE_METHOD == 'FSM':
+            g.set_slowness(slowness)
+            hE[j, :] = g.raytrace(src_coords, rcv_coords) + t0
+
+        else:
+            hE[j, :] = g.raytrace(src_coords, rcv_coords, slowness=slowness) + t0
+
+    print(f'     Forecast step took {time.time() - starttime:.2f} seconds')
+
+    return Ef, hE, rcv_coords, src_coords
+
+"""
     Ef_para = []
     
     for result in tqdm(Parallel(n_jobs=n_jobs, return_as="generator")(jobs_perturb), total=N, desc="     Perturbing", ncols=80):
@@ -196,6 +249,7 @@ def fore_step(E, ms, rcv, nsta, nev, g, pp_min, pp_max, rr_min, rr_max, ms_true=
 
     print(f'     Forecast step took {time.time() - starttime:.2f} seconds')  
     return Ef, hE, rcv_kron, ms_kron
+"""
 
 def mrdiv(A, B):
     """ Matrix right division: A / B = A @ inv(B) 
